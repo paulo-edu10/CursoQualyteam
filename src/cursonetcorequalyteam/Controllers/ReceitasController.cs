@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using cursonetcorequalyteam.Dominio;
+using cursonetcorequalyteam.Infraestrutura;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace cursonetcorequalyteam.Controllers
 {
@@ -10,53 +14,78 @@ namespace cursonetcorequalyteam.Controllers
     [ApiController]
     public class ReceitasController : ControllerBase
     {
+
+        private readonly ReceitasContext _context;
+
+        public ReceitasController(ReceitasContext context){
+            _context = context;
+        }
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<ReceitasViewModel>> Get()
         {
-         return  new ReceitasViewModel[]{
+        
+           return  _context.Receitas
+           .Select( Receita=> new ReceitasViewModel(){
+                Id = Receita.Id,
+                Description = Receita.Descricao,
+                ImageUrl = Receita.UrlDaImagem,
+                Ingredients = Receita.Ingredientes,
+                Preparation = Receita.Preparacao,
+                Title = Receita.Titulo,
+            }
+            ).ToArray();   
 
-                new ReceitasViewModel(){
-
-                Id = 1,
-                title = "Batata frita",
-                Description = "Batata frita é aquele acompanhamento do qual todo mundo gosta e também é um aperitivo delicioso.",
-                ImageUrl = "https://img.elo7.com.br/product/original/1DEEFB7/caixinha-embalagem-batata-frita-e-porcoes-peq-preto-500un-embalagem-food-truck.jpg",
-                Ingredients = "Batata, óleo e sal a gosto.",
-                Preparation = "Teste",
-
-                },
-
-                new ReceitasViewModel(){
-
-                Id = 2,
-                title = "Pizza",
-                Description = "Tudo sempre termina em pizza então por que não?",
-                ImageUrl = "https://i.huffpost.com/gen/985357/original.jpg",
-                Ingredients = "1 xícara (chá) de leite 1 ovo 1 colher (chá) de sal 1 colher (chá) de açúcar 1 colher (sopa) de margarina 1 e 1/2 xícara (chá) de farinha de trigo 1 colher (sobremesa) de fermento em pó 1/2 lata de molho de tomate",
-                Preparation = "Teste2",
-
-                }
-        };
         }
 
         // GET api/values/5
         [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        public ActionResult<ReceitasViewModel> Get(int id)
         {
-            return "value";
+            return _context.Receitas.Select( Receita=> new ReceitasViewModel(){
+                Id = Receita.Id,
+                Description = Receita.Descricao,
+                ImageUrl = Receita.UrlDaImagem,
+                Ingredients = Receita.Ingredientes,
+                Preparation = Receita.Preparacao,
+                Title = Receita.Titulo,
+            }).FirstOrDefault(receita=> receita.Id == id);
         }
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public ActionResult<ReceitasViewModel> Post([FromBody] ReceitasViewModel receitaPayLoad)
         {
+
+            var receita = new Receita(
+                receitaPayLoad.Title,
+                receitaPayLoad.Description,
+                receitaPayLoad.Ingredients,
+                receitaPayLoad.Preparation,
+                receitaPayLoad.ImageUrl
+            );
+            _context.Receitas.Add(receita);
+            _context.SaveChanges();
+
+            var newViewModel = new ReceitasViewModel(receita.Id,receita.Titulo, receita.Descricao, receita.Ingredientes,receita.Preparacao, receita.UrlDaImagem);
+
+            return newViewModel;
+
         }
 
         // PUT api/values/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        public  ActionResult<ReceitasViewModel> Put(int id, [FromBody] ReceitasViewModel viewModel)
         {
+            var receita = _context.Receitas.FirstOrDefault(item => item.Id == id);
+
+            receita.Update(viewModel.Title,viewModel.Description);
+
+            _context.SaveChanges();
+
+            var newViewModel = new ReceitasViewModel(receita.Id,receita.Titulo, receita.Descricao, receita.Ingredientes,receita.Preparacao, receita.UrlDaImagem);
+
+            return newViewModel;
         }
 
         // DELETE api/values/5
@@ -67,8 +96,20 @@ namespace cursonetcorequalyteam.Controllers
     }
 
     public class ReceitasViewModel{
+
+        public ReceitasViewModel(){}
+        public ReceitasViewModel(int id, string title, string description, string ingredients, string preparation, string imageUrl)
+        {
+            Id = id;
+            Title = title;
+            Description = description;
+            Ingredients = ingredients;
+            Preparation = preparation;
+            ImageUrl = imageUrl;
+        }
+
         public int Id { get; set; }
-        public string title { get; set; }
+        public string Title { get; set; }
         public string Description { get; set; }
         public string  Ingredients { get; set; }
         public string Preparation { get; set; }
